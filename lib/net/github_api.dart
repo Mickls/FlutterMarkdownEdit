@@ -23,7 +23,7 @@ Future<Dio> getClient() async {
 ///
 /// 获取仓库名称
 ///
-Future<String> getRepoName() async{
+Future<String> getRepoName() async {
   var prefs = await SharedPreferences.getInstance();
   return prefs.getString('github_repo') ?? "";
 }
@@ -31,7 +31,7 @@ Future<String> getRepoName() async{
 ///
 /// 获取github用户名
 ///
-Future<String> getGithubUsername() async{
+Future<String> getGithubUsername() async {
   var prefs = await SharedPreferences.getInstance();
   return prefs.getString('github_name') ?? "";
 }
@@ -62,11 +62,16 @@ Future<GithubContentsRes> getContents(String contentPath) async {
 /// 上传或更新文件
 /// 更新文件需要传sha
 ///
-Future<GithubContentsRes> putContents(String contentPath, String content, {String sha=""}) async {
+Future<GithubContentsRes> putContents(String contentPath, String content,
+    {String sha = ""}) async {
   final url = await getContentsPath(contentPath);
   Dio client = await getClient();
 
-  GithubContentsPut putObj = GithubContentsPut("commit $contentPath", sha, content);
+  GithubContentsPut putObj = GithubContentsPut(
+    message: "commit $contentPath",
+    sha: sha,
+    content: content,
+  );
   final res = await client.put(
     url,
     data: putObj.toMap(),
@@ -81,7 +86,10 @@ void delContents(String contentPath, String sha) async {
   final url = await getContentsPath(contentPath);
   Dio client = await getClient();
 
-  GithubContentsPut putObj = GithubContentsPut("commit $contentPath", "", sha);
+  GithubContentsPut putObj = GithubContentsPut(
+    message: "commit $contentPath",
+    sha: sha,
+  );
   await client.delete(
     url,
     data: putObj.toMap(),

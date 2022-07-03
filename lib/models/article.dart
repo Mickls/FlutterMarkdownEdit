@@ -1,84 +1,96 @@
 import 'package:flutter_md_edit/models/folder.dart';
-import 'package:flutter_md_edit/utils/db_utils.dart';
+import 'package:flutter_md_edit/models/db_utils.dart';
 import 'package:sqflite/sqflite.dart';
 
-// 表名
 const String articleTable = 'md_article';
 
-const String _id = 'id';
-// 标题
-const String _title = 'title';
-// 内容
-const String _content = 'content';
-// 上级文件夹ID
-const String _superFolderID = 'super_id';
-const String _createdAt = "created_at";
-const String _updatedAt = "updated_at";
+const String articleId = 'id';
+const String articleTitle = 'title';
+const String articleContent = 'content';
+const String articleSuperFolderID = 'super_id';
+const String articleSha = 'sha';
+const String articleIsDraft = "is_draft";
+const String articleCreatedAt = 'created_at';
+const String articleUpdatedAt = 'updated_at';
+const String articleDeactivatedAt = 'deactivated_at';
 
 class Article {
   int? id;
   String? title;
   String? content;
   int? superFolderID;
+  String? sha;
+  int? isDraft;
   DateTime? createdAt;
   DateTime? updatedAt;
+  DateTime? deactivatedAt;
 
-  Article(
-      {this.id,
-      required this.title,
-      required this.content,
-      this.superFolderID,
-      this.createdAt,
-      this.updatedAt});
+  Article({
+    this.id,
+    required this.title,
+    required this.content,
+    this.superFolderID,
+    this.sha,
+    this.isDraft,
+    this.createdAt,
+    this.updatedAt,
+    this.deactivatedAt,
+  });
 
   Map<String, dynamic> toMap() {
     Map<String, dynamic> map = {
-      _id: id,
-      _title: title,
-      _content: content,
-      _superFolderID: superFolderID,
-      _createdAt: createdAt,
-      _updatedAt: updatedAt,
+      articleId: id,
+      articleTitle: title,
+      articleContent: content,
+      articleSuperFolderID: superFolderID,
+      articleSha: sha,
+      articleIsDraft: isDraft,
+      articleCreatedAt: createdAt,
+      articleUpdatedAt: updatedAt,
+      articleDeactivatedAt: deactivatedAt,
     };
     return map;
   }
 
   Article.fromMap(Map<dynamic, dynamic>? map) {
-    id = map?[_id];
-    title = map?[_title];
-    content = map?[_content];
-    superFolderID = map?[_superFolderID];
-    createdAt = DateTime.fromMillisecondsSinceEpoch(map?[_createdAt]);
-    updatedAt = DateTime.fromMillisecondsSinceEpoch(map?[_updatedAt]);
+    id = map?[articleId];
+    title = map?[articleTitle];
+    content = map?[articleContent];
+    superFolderID = map?[articleSuperFolderID];
+    sha = map?[articleSha];
+    isDraft = map?[articleIsDraft];
+    createdAt = DateTime.fromMillisecondsSinceEpoch(map?[articleCreatedAt]);
+    updatedAt = DateTime.fromMillisecondsSinceEpoch(map?[articleUpdatedAt]);
+    deactivatedAt =
+        DateTime.fromMillisecondsSinceEpoch(map?[articleDeactivatedAt] ?? 0);
   }
 }
 
 class ArticleProvider {
   // late Database _database;
   // static const String articleTable = 'md_article';
-  String createSql = """
+  String createSql = '''
   CREATE TABLE 
     $articleTable (
-      $_id INTEGER PRIMARY KEY,
-      $_title VARCHAR(50) NOT NULL,
-      $_content TEXT NOT NULL,
-      $_superFolderID INTEGER DEFAULT 0,
-      $_createdAt DATETIME NOT NULL,
-      $_updatedAt DATETIME NOT NULL
+      $articleId INTEGER PRIMARY KEY,
+      $articleTitle VARCHAR(50) NOT NULL,
+      $articleContent TEXT NOT NULL,
+      $articleSuperFolderID INTEGER DEFAULT 0,
+      $articleSha VARCHAR(255),
+      $articleIsDraft SMALLINT(1) DEFAULT 0,
+      $articleCreatedAt INTEGER NOT NULL,
+      $articleUpdatedAt INTEGER NOT NULL,
+      $articleDeactivatedAt INTEGER
     )
-  """;
-
-  // articleProvider() async {
-  //   _database =  await DBProvider.db();
-  // }
+  ''';
 
   Future insert(Article article) async {
     final db = await DBProvider.db();
     var insertMap = article.toMap();
     insertMap.removeWhere((key, value) => value == null);
     var now = DateTime.now().millisecondsSinceEpoch;
-    insertMap[_createdAt] = now;
-    insertMap[_updatedAt] = now;
+    insertMap[articleCreatedAt] = now;
+    insertMap[articleUpdatedAt] = now;
     return await db.insert(articleTable, insertMap);
   }
 
@@ -89,8 +101,8 @@ class ArticleProvider {
       var insertMap = element.toMap();
       insertMap.removeWhere((key, value) => value == null);
       var now = DateTime.now().millisecondsSinceEpoch;
-      insertMap[_createdAt] = now;
-      insertMap[_updatedAt] = now;
+      insertMap[articleCreatedAt] = now;
+      insertMap[articleUpdatedAt] = now;
       batch.insert(articleTable, insertMap);
       print('${DateTime.now()}--${insertMap}');
     }
@@ -101,8 +113,16 @@ class ArticleProvider {
     final db = await DBProvider.db();
     List<Map>? maps = await db.query(
       articleTable,
-      columns: [_id, _title, _content, _superFolderID, _createdAt, _updatedAt],
-      where: '$_id=?',
+      columns: [
+        articleId,
+        articleTitle,
+        articleContent,
+        articleSuperFolderID,
+        articleIsDraft,
+        articleCreatedAt,
+        articleUpdatedAt,
+      ],
+      where: '$articleId=? AND $articleDeactivatedAt is NULL',
       whereArgs: [id],
       limit: 1,
     );
@@ -113,8 +133,15 @@ class ArticleProvider {
     final db = await DBProvider.db();
     List<Map>? maps = await db.query(
       articleTable,
-      columns: [_id, _title, _content, _superFolderID, _createdAt, _updatedAt],
-      where: '$_id=?',
+      columns: [
+        articleId,
+        articleTitle,
+        articleContent,
+        articleSuperFolderID,
+        articleCreatedAt,
+        articleUpdatedAt,
+      ],
+      where: '$articleId=?',
       whereArgs: [id],
       limit: 1,
     );
@@ -128,18 +155,18 @@ class ArticleProvider {
     final db = await DBProvider.db();
     List<Map>? maps = await db.query(articleTable,
         columns: [
-          _id,
-          _title,
-          _content,
-          _superFolderID,
-          _createdAt,
-          _updatedAt
+          articleId,
+          articleTitle,
+          articleContent,
+          articleSuperFolderID,
+          articleCreatedAt,
+          articleUpdatedAt,
         ],
-        where: '$_superFolderID=?',
+        where: '$articleSuperFolderID=?',
         whereArgs: [id],
         offset: offset,
         limit: limit,
-        orderBy: '-$_createdAt');
+        orderBy: '-$articleCreatedAt');
     List<LevelRoot> list = [];
     maps.forEach((element) {
       var el = Map.from(element);
@@ -163,7 +190,7 @@ class ArticleProvider {
     final db = await DBProvider.db();
     return await db.delete(
       articleTable,
-      where: '$_id=?',
+      where: '$articleId=?',
       whereArgs: [id],
     );
   }
@@ -173,11 +200,11 @@ class ArticleProvider {
     var now = DateTime.now().millisecondsSinceEpoch;
     var updateMap = article.toMap();
     updateMap.removeWhere((key, value) => value == null);
-    updateMap[_updatedAt] = now;
+    updateMap[articleUpdatedAt] = now;
     return await db.update(
       articleTable,
       updateMap,
-      where: '$_id=?',
+      where: '$articleId=?',
       whereArgs: [id],
     );
   }

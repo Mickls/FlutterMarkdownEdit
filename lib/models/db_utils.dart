@@ -5,16 +5,14 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
-
 class DBProvider {
   static Future<Database> db() async {
-    return openDatabase(
-      'edit_md.db',
-      version: 1,
-      onCreate:(Database database, int version) async {
-        await _onCreate(database, 1);
-      },
-    );
+    return openDatabase('edit_md.db', version: 1,
+        onCreate: (Database database, int version) async {
+      await _onCreate(database, 1);
+    }, onUpgrade: (Database database, int oldVersion, int newVersion) async {
+      await _onUpgrade(database, 1, 2);
+    });
   }
 
   ///
@@ -28,10 +26,22 @@ class DBProvider {
   ///
   /// 版本升级（数据表有变更时）
   ///
-  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  static Future<void> _onUpgrade(
+      Database db, int oldVersion, int newVersion) async {
     Batch batch = db.batch();
     if (oldVersion == 1) {
-      // batch.execute('alter table ta_person add fire text');
+      batch.execute('''
+      alter table $articleTable 
+        add $articleSha VARCHAR(255),
+        add $articleIsDraft SMALLINT(1) DEFAULT 0,
+        add $articleDeactivatedAt INTEGER
+      '''
+      );
+      batch.execute('''
+      alter table $folderTable 
+        add $folderDeactivatedAt INTEGER
+      '''
+      );
     } else if (oldVersion == 2) {
       // batch.execute('alter table ta_person add water text');
     } else if (oldVersion == 3) {}
@@ -46,7 +56,7 @@ class DBProvider {
   ///
   /// 版本降级
   ///
-  Future _onDowngrade (Database db, int oldVersion, int newVersion) async {
+  Future _onDowngrade(Database db, int oldVersion, int newVersion) async {
     Batch batch = db.batch();
 
     await batch.commit();
@@ -60,7 +70,6 @@ class DBProvider {
     return result.isNotEmpty;
   }
 }
-
 
 // class DBProvider {
 //   static final DBClient _singleton = DBClient._internal();

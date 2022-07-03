@@ -3,7 +3,7 @@ import 'package:flutter_md_edit/ui/handle_ui.dart';
 import 'package:flutter_md_edit/ui/home_ui.dart';
 import 'package:flutter_md_edit/ui/edit_ui.dart';
 import 'package:flutter_md_edit/ui/test_ui.dart';
-import 'package:flutter_md_edit/utils/db_utils.dart';
+import 'package:flutter_md_edit/models/db_utils.dart';
 
 void main() {
   runApp(const MyApp());

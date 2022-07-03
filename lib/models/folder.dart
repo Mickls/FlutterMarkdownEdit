@@ -1,14 +1,15 @@
 import 'package:flutter_md_edit/models/article.dart';
-import 'package:flutter_md_edit/utils/db_utils.dart';
+import 'package:flutter_md_edit/models/db_utils.dart';
 import 'package:sqflite/sqflite.dart';
 
 const String folderTable = "md_folder";
 
-const String _id = "id";
-const String _name = "name";
-const String _superID = "super_id";
-const String _createdAt = "created_at";
-const String _updatedAt = "updated_at";
+const String folderId = "id";
+const String folderName = "name";
+const String folderSuperID = "super_id";
+const String folderCreatedAt = "created_at";
+const String folderUpdatedAt = "updated_at";
+const String folderDeactivatedAt = 'deactivated_at';
 
 const int folderType = 1;
 const int articleType = 2;
@@ -24,23 +25,32 @@ class Folder {
 
   DateTime? createdAt;
   DateTime? updatedAt;
+  DateTime? deactivatedAt;
 
-  Folder({this.id, this.name, this.superID, this.createdAt, this.updatedAt});
+  Folder({
+    this.id,
+    this.name,
+    this.superID,
+    this.createdAt,
+    this.updatedAt,
+    this.deactivatedAt,
+  });
 
   Map<String, dynamic> toMap() {
     Map<String, dynamic> map = {
-      _name: name,
-      _superID: superID,
+      folderName: name,
+      folderSuperID: superID,
     };
     return map;
   }
 
   Folder.fromMap(Map<dynamic, dynamic>? map) {
-    id = map?[_id];
-    name = map?[_name];
-    superID = map?[_superID];
-    createdAt = map?[_createdAt];
-    updatedAt = map?[_updatedAt];
+    id = map?[folderId];
+    name = map?[folderName];
+    superID = map?[folderSuperID];
+    createdAt = map?[folderCreatedAt];
+    updatedAt = map?[folderUpdatedAt];
+    deactivatedAt = map?[folderDeactivatedAt];
   }
 }
 
@@ -70,7 +80,14 @@ class LevelRoot {
   static String levelRootCreatedAt = "created_at";
   static String levelRootUpdatedAt = "updated_at";
 
-  LevelRoot({this.id, this.name, this.superID, this.type, this.content, this.createdAt, this.updatedAt});
+  LevelRoot(
+      {this.id,
+      this.name,
+      this.superID,
+      this.type,
+      this.content,
+      this.createdAt,
+      this.updatedAt});
 
   Map<String, dynamic> toMap() {
     Map<String, dynamic> map = {
@@ -98,11 +115,12 @@ class FolderProvider {
   String createSql = """
     CREATE TABLE 
       $folderTable (
-        $_id INTEGER PRIMARY KEY, 
-        $_name VARCHAR(50) NOT NULL, 
-        $_superID INTEGER DEFAULT 0,
-        $_createdAt DATETIME NOT NULL,
-        $_updatedAt DATETIME NOT NULL
+        $folderId INTEGER PRIMARY KEY, 
+        $folderName VARCHAR(50) NOT NULL, 
+        $folderSuperID INTEGER DEFAULT 0,
+        $folderCreatedAt INTEGER NOT NULL,
+        $folderUpdatedAt INTEGER NOT NULL,
+        $folderDeactivatedAt INTEGER NOT NULL
       )
   """;
 
@@ -110,8 +128,8 @@ class FolderProvider {
     var _database = await DBProvider.db();
     var now = DateTime.now();
     var insertMap = folder.toMap();
-    insertMap[_createdAt] = now;
-    insertMap[_updatedAt] = now;
+    insertMap[folderCreatedAt] = now;
+    insertMap[folderUpdatedAt] = now;
     return await _database.insert(folderTable, insertMap);
   }
 
@@ -121,8 +139,8 @@ class FolderProvider {
     for (var element in folders) {
       var now = DateTime.now();
       var insertMap = element.toMap();
-      insertMap[_createdAt] = now;
-      insertMap[_updatedAt] = now;
+      insertMap[folderCreatedAt] = now;
+      insertMap[folderUpdatedAt] = now;
       batch.insert(folderTable, insertMap);
       print('${DateTime.now()}--${insertMap}');
     }
@@ -133,34 +151,33 @@ class FolderProvider {
     var _database = await DBProvider.db();
     List<Map>? maps = await _database.query(
       folderTable,
-      columns: [_id, _name, _superID, _createdAt, _updatedAt],
-      where: '$_id=?',
+      columns: [folderId, folderName, folderSuperID, folderCreatedAt, folderUpdatedAt],
+      where: '$folderId=?',
       whereArgs: [id],
       limit: 1,
     );
     return Folder.fromMap(maps.first);
   }
 
-  Future<List<LevelRoot>> queryRoot(int id, {int limit = 10, offset = 0}) async {
+  Future<List<LevelRoot>> queryRoot(int id,
+      {int limit = 10, offset = 0}) async {
     var _database = await DBProvider.db();
     List<LevelRoot> folderLevelRoots = [];
-    List<Map>? folderMaps = await _database.query(
-      folderTable,
-      columns: [_id, _name, _superID, _createdAt, _updatedAt],
-      where: '$_superID=?',
-      whereArgs: [id],
-      limit: limit,
-      offset: offset
-    );
+    List<Map>? folderMaps = await _database.query(folderTable,
+        columns: [folderId, folderName, folderSuperID, folderCreatedAt, folderUpdatedAt],
+        where: '$folderSuperID=?',
+        whereArgs: [id],
+        limit: limit,
+        offset: offset);
     folderMaps.forEach((element) {
       element[LevelRoot.levelRootType] = folderType;
       element[LevelRoot.levelRootContent] = "";
       folderLevelRoots.add(LevelRoot.fromMap(element));
     });
 
-    List<LevelRoot>? articleLevelRoots =
-        await ArticleProvider().queryLevelRootWithSuperFolderID(id, limit: limit, offset: offset);
-    if (articleLevelRoots.isNotEmpty){
+    List<LevelRoot>? articleLevelRoots = await ArticleProvider()
+        .queryLevelRootWithSuperFolderID(id, limit: limit, offset: offset);
+    if (articleLevelRoots.isNotEmpty) {
       folderLevelRoots.addAll(articleLevelRoots);
     }
     return folderLevelRoots;
@@ -180,7 +197,7 @@ class FolderProvider {
     var _database = await DBProvider.db();
     return await _database.delete(
       folderTable,
-      where: '$_id=?',
+      where: '$folderId=?',
       whereArgs: [id],
     );
   }
@@ -189,7 +206,7 @@ class FolderProvider {
     var _database = await DBProvider.db();
     var now = DateTime.now();
     var updateMap = folder.toMap();
-    updateMap[_updatedAt] = now;
+    updateMap[folderUpdatedAt] = now;
     return await _database.update(
       folderTable,
       updateMap,

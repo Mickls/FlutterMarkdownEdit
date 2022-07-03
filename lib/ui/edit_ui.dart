@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_md_edit/logic/file_data.dart';
 import 'package:flutter_md_edit/models/article.dart';
+import 'package:flutter_md_edit/ui/pop_window_ui.dart';
 import 'package:flutter_md_edit/utils/markdown_highlight.dart';
 import 'package:flutter_md_edit/utils/overrid_stack.dart';
 
@@ -20,6 +22,7 @@ class EditUIState extends State<EditUI> {
   var _width = 0.0;
   bool _editVisible = true;
   bool _viewVisible = true;
+  bool _isRefresh = false;
   FocusNode editFocusNode = FocusNode();
   FocusNode titleFocusNode = FocusNode();
 
@@ -50,29 +53,37 @@ class EditUIState extends State<EditUI> {
     // TODO: implement initState
     super.initState();
     _loadData(widget.articleID);
-    editFocusNode.addListener(() async {
-      if (editFocusNode.hasFocus) {
-        print("获取焦点");
-      } else {
-        // TODO: 两个逻辑，新建文件保存草稿箱，非新建文件直接保存
-        if (widget.articleID != 0) {
-          Article article = Article(
-            title: titleText,
-            content: markdownText,
-            superFolderID: 0,
-          );
-          await ArticleProvider()
-              .update(article, widget.articleID);
-        } else {
-          Article article = Article(
-            title: titleText,
-            content: markdownText,
-            superFolderID: 0,
-          );
-          await ArticleProvider().insert(article);
-        }
-      }
+    titleFocusNode.addListener(() async {
+      await _autoSave();
     });
+    editFocusNode.addListener(() async {
+      await _autoSave();
+    });
+  }
+
+  _autoSave() async {
+    if (editFocusNode.hasFocus || titleFocusNode.hasFocus) {
+      print("获取焦点");
+    } else {
+      _isRefresh = await autoSaveFile(widget.articleID, titleText, markdownText);
+    }
+  }
+
+  _saveData() async {
+    if (titleText.isNotEmpty) {
+      _isRefresh = true;
+      saveFile(widget.articleID, titleText, markdownText);
+      if (mounted) {
+        Navigator.of(context).pop(_isRefresh);
+      }
+    } else {
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return titleEmptyDialog(context);
+        },
+      );
+    }
   }
 
   @override
@@ -94,51 +105,15 @@ class EditUIState extends State<EditUI> {
               children: [
                 TextButton(
                   onPressed: () {
-                    bool isRefresh = false;
-                    Navigator.of(context).pop(isRefresh);
+                    Navigator.of(context).pop(_isRefresh);
                   },
-                  child: Text("取消"),
+                  child: const Text("取消"),
                 ),
                 TextButton(
                     onPressed: () async {
-                      bool isRefresh = false;
-                      if (titleText.isNotEmpty) {
-                        isRefresh = true;
-                        if (widget.articleID != 0) {
-                          Article article = Article(
-                            title: titleText,
-                            content: markdownText,
-                            superFolderID: 0,
-                          );
-                          await ArticleProvider()
-                              .update(article, widget.articleID);
-                        } else {
-                          Article article = Article(
-                            title: titleText,
-                            content: markdownText,
-                            superFolderID: 0,
-                          );
-                          await ArticleProvider().insert(article);
-                        }
-                        Navigator.of(context).pop(isRefresh);
-                      } else {
-                        await showDialog(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                title: Text('注意了'),
-                                content: Text('谁家孩子写文章不写标题就保存？'),
-                                actions: <Widget>[
-                                  FlatButton(child: Text('我知道了'),onPressed: (){
-                                    Navigator.pop(context);
-                                  },),
-                                ],
-                              );
-                            },
-                        );
-                      }
+                      _saveData();
                     },
-                    child: Text("保存"))
+                    child: const Text("保存"))
               ],
             ),
           ),
@@ -154,7 +129,7 @@ class EditUIState extends State<EditUI> {
 
   // 标题界面
   Widget titleUI() {
-    return Container(
+    return SizedBox(
       height: 50,
       child: Row(
         children: [

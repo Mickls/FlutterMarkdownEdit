@@ -54,14 +54,6 @@ class LatestPageState extends State<LatestPageUI> {
     _refreshController.loadComplete();
   }
 
-  _refreshArticleDataWithIndex(int articleID, index) async {
-    final levelRoot =
-        await ArticleProvider().queryLevelRootWithArticleID(articleID);
-    setState(() {
-      _levelRoots[index] = levelRoot;
-    });
-  }
-
   @override
   void initState() {
     super.initState();
@@ -71,11 +63,9 @@ class LatestPageState extends State<LatestPageUI> {
   Widget articleCartUI(int index) {
     return GestureDetector(
       onTap: () async {
-        dynamic isRefresh = await Navigator.of(context)
+        await Navigator.of(context)
             .pushNamed("/edit", arguments: _levelRoots[index].id ?? 0);
-        if (isRefresh ?? false) {
-          _refreshData();
-        }
+        _refreshData();
       },
       onLongPress: () {
         showDialog(

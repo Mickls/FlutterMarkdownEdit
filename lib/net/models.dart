@@ -13,7 +13,7 @@ class GithubContentsRes {
   String? htmlUrl;
   String? downloadUrl;
 
-  GithubContentsRes(
+  GithubContentsRes({
     this.type,
     this.encoding,
     this.size,
@@ -25,7 +25,7 @@ class GithubContentsRes {
     this.gitUrl,
     this.htmlUrl,
     this.downloadUrl,
-  );
+  });
 
   GithubContentsRes.fromMap(Map<String, dynamic> map) {
     List<int> byteC = base64Decode(map['content'].trim());
@@ -49,17 +49,17 @@ class GithubContentsPut {
   String? sha;
   String? content;
 
-  GithubContentsPut(
+  GithubContentsPut({
     this.message,
     this.sha,
     this.content,
-  );
+  });
 
   Map<String, dynamic> toMap() {
     Map<String, dynamic> maps = {
-      "message": message,
-      "sha": sha,
-      "content": content,
+      'message': message,
+      'sha': sha,
+      'content': content,
     };
     maps.removeWhere((key, value) => value == null);
     return maps;
