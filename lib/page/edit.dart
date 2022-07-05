@@ -4,7 +4,7 @@ import 'package:flutter_md_edit/logic/file_data.dart';
 import 'package:flutter_md_edit/models/article.dart';
 import 'package:flutter_md_edit/components/pop_window_ui.dart';
 import 'package:flutter_md_edit/utils/markdown_highlight.dart';
-import 'package:flutter_md_edit/utils/overrid_stack.dart';
+import 'package:flutter_md_edit/utils/override_stack.dart';
 
 class EditUI extends StatefulWidget {
   final int articleID;
@@ -26,7 +26,6 @@ class EditUIState extends State<EditUI> {
 
   bool _editVisible = true;
   bool _viewVisible = true;
-  bool _isRefresh = false;
   FocusNode editFocusNode = FocusNode();
   FocusNode titleFocusNode = FocusNode();
 
@@ -56,10 +55,10 @@ class EditUIState extends State<EditUI> {
     super.initState();
     _loadData(widget.articleID);
     titleFocusNode.addListener(() async {
-      await _autoSave();
+      Future(() => _autoSave());
     });
     editFocusNode.addListener(() async {
-      await _autoSave();
+      Future(() => _autoSave());
     });
   }
 
@@ -67,6 +66,7 @@ class EditUIState extends State<EditUI> {
     if (editFocusNode.hasFocus || titleFocusNode.hasFocus) {
       print("获取焦点");
     } else {
+      print("${DateTime.now().millisecond}: autosave, $_articleID");
       var id = widget.articleID;
       if (_articleID != 0){
         id = _articleID;
@@ -77,14 +77,14 @@ class EditUIState extends State<EditUI> {
 
   _saveData() async {
     if (titleText.isNotEmpty) {
-      _isRefresh = true;
       var id = widget.articleID;
+      print("${DateTime.now().millisecond}: save, $_articleID");
       if (_articleID != 0) {
         id = _articleID;
       }
-      saveFile(id, titleText, markdownText);
+      _articleID = await saveFile(id, titleText, markdownText);
       if (mounted) {
-        Navigator.of(context).pop(_isRefresh);
+        Navigator.of(context).pop();
       }
     } else {
       await showDialog(
@@ -115,13 +115,13 @@ class EditUIState extends State<EditUI> {
               children: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop(_isRefresh);
+                    Navigator.of(context).pop();
                   },
                   child: const Text("取消"),
                 ),
                 TextButton(
                     onPressed: () async {
-                      _saveData();
+                      Future(() => _saveData());
                     },
                     child: const Text("保存"))
               ],

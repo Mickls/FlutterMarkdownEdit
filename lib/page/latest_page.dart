@@ -5,6 +5,7 @@ import 'package:flutter_md_edit/contains/icon.dart';
 import 'package:flutter_md_edit/models/article.dart';
 import 'package:flutter_md_edit/models/folder.dart';
 import 'package:flutter_md_edit/contains/font_style.dart';
+import 'package:flutter_md_edit/page/search_ui.dart';
 import 'package:getwidget/components/list_tile/gf_list_tile.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
@@ -22,7 +23,8 @@ class LatestPageState extends State<LatestPage> {
   final ScrollController _scrollController = ScrollController();
 
   List<LevelRoot> _levelRoots = [];
-  List<String> _titles = [];
+  List<LevelRoot> _tempLevelRoots = [];
+  // List<String> _titles = [];
 
   final RefreshController _refreshController =
       RefreshController(initialRefresh: false);
@@ -31,15 +33,14 @@ class LatestPageState extends State<LatestPage> {
     if (_levelRoots.length > offset) {
       offset = _levelRoots.length;
     }
-    var levelRoots =
-        await FolderProvider().queryRoot(superID, limit: limit, offset: offset);
+    var levelRoots = await FolderProvider()
+        .queryLevelRootWithID(superID, limit: limit, offset: offset);
     if (levelRoots.isNotEmpty) {
       if (mounted) {
         setState(() {
           for (var element in levelRoots) {
             if (!_levelRoots.contains(element)) {
               _levelRoots.add(element);
-              _titles.add(element.name ?? "");
             }
           }
           _refreshController.loadComplete();
@@ -51,8 +52,8 @@ class LatestPageState extends State<LatestPage> {
   }
 
   _refreshData({int superID = 0, offset = 0, limit = 10}) async {
-    var levelRoots =
-        await FolderProvider().queryRoot(superID, offset: offset, limit: limit);
+    var levelRoots = await FolderProvider()
+        .queryLevelRootWithID(superID, offset: offset, limit: limit);
     setState(() {
       _levelRoots = levelRoots;
     });
@@ -242,102 +243,100 @@ class LatestPageState extends State<LatestPage> {
     );
   }
 
+  Widget getSearchUI() {
+    return SearchBar(
+      // overlaySearchListHeight: 100.0,
+      searchList: [],
+      overlaySearchListItemBuilder: (dynamic item) {
+        return Container(
+          padding: const EdgeInsets.all(8),
+          child: Text(
+            item,
+            style: TextStyle(
+              fontSize: 14,
+            ),
+          ),
+        );
+      },
+      searchQueryBuilder: (String query, List<dynamic> searchList) async {
+        if (query.isEmpty) {
+          if (_tempLevelRoots.isNotEmpty) {
+            setState(() {
+              _levelRoots.clear();
+              _levelRoots.addAll(_tempLevelRoots);
+              _tempLevelRoots.clear();
+            });
+          }
+        } else {
+          final levelRoots =
+              await FolderProvider().queryLevelRootWithKey(query);
+          if (_tempLevelRoots.isEmpty) {
+            _tempLevelRoots.addAll(_levelRoots);
+          }
+          // searchList.clear();
+          // for (var element in levelRoots) {
+          //   searchList.add(element.name ?? "");
+          // }
+          setState(() {
+            _levelRoots = levelRoots;
+          });
+        }
+        return [];
+        // return searchList;
+      },
+      noItemsFoundWidget: Container(),
+    );
+  }
+
   Widget getContentUI() {
     var searchList = [];
-    _levelRoots.forEach((element) {
+    for (var element in _levelRoots) {
       searchList.add(element.name);
-    });
-    return SmartRefresher(
-        enablePullDown: true,
-        enablePullUp: true,
-        header: const WaterDropHeader(),
-        footer: CustomFooter(
-          builder: (BuildContext context, LoadStatus? mode) {
-            Widget body;
-            if (mode == LoadStatus.idle) {
-              body = const Text("上拉加载");
-            } else if (mode == LoadStatus.loading) {
-              body = const CupertinoActivityIndicator();
-            } else if (mode == LoadStatus.failed) {
-              body = const Text("加载失败！点击重试！");
-            } else if (mode == LoadStatus.canLoading) {
-              body = const Text("松手,加载更多!");
-            } else {
-              body = const Text("没有更多数据了!");
-            }
-            return SizedBox(
-              height: 55.0,
-              child: Center(child: body),
-            );
-          },
-        ),
-        controller: _refreshController,
-        onRefresh: _refreshData,
-        onLoading: _loadData,
-        child: Column(
-          children: [
-            GFSearchBar(
-              overlaySearchListHeight: 100.0,
-              searchList: searchList,
-              overlaySearchListItemBuilder: (dynamic item) {
-                return Container(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    item,
-                    style: TextStyle(
-                      fontSize: 14,
-                    ),
-                  ),
+    }
+    return Column(
+      children: [
+        getSearchUI(),
+        Expanded(
+          child: SmartRefresher(
+            enablePullDown: true,
+            enablePullUp: true,
+            header: const WaterDropHeader(),
+            footer: CustomFooter(
+              builder: (BuildContext context, LoadStatus? mode) {
+                Widget body;
+                if (mode == LoadStatus.idle) {
+                  body = const Text("上拉加载");
+                } else if (mode == LoadStatus.loading) {
+                  body = const CupertinoActivityIndicator();
+                } else if (mode == LoadStatus.failed) {
+                  body = const Text("加载失败！点击重试！");
+                } else if (mode == LoadStatus.canLoading) {
+                  body = const Text("松手,加载更多!");
+                } else {
+                  body = const Text("没有更多数据了!");
+                }
+                return SizedBox(
+                  height: 55.0,
+                  child: Center(child: body),
                 );
               },
-              searchQueryBuilder: (query, List<dynamic> searchList) {
-                // TODO: 搜索同时修改主页展示的文件列表<setState>
-                return searchList
-                    .where((element) =>
-                        element.toLowerCase().contains(query.toLowerCase()))
-                    .toList();
-              },
-              onItemSelected: (item) {
-                // TODO: 点击选项直接展示选项命中的文件列表
-                print(item);
-              },
-              noItemsFoundWidget: Container(),
-              searchBoxInputDecoration: InputDecoration(
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: Color(0x4437474F),
-                  ),
-                  borderRadius: BorderRadius.circular(60),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-                suffixIcon: const Icon(Icons.search),
-                border: InputBorder.none,
-                hintText: '搜索',
-                contentPadding: const EdgeInsets.only(
-                  left: 16,
-                  right: 20,
-                  top: 14,
-                  bottom: 14,
-                ),
-              ),
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _levelRoots.length,
-                controller: _scrollController,
-                // shrinkWrap: true,
-                itemBuilder: (context, index) {
-                  // return articleCartUI(index);
-                  return articleTitleUI(index);
-                },
-              ),
-            )
-          ],
-        ));
+            controller: _refreshController,
+            onRefresh: _refreshData,
+            onLoading: _loadData,
+            child: ListView.builder(
+              itemCount: _levelRoots.length,
+              controller: _scrollController,
+              // shrinkWrap: true,
+              itemBuilder: (context, index) {
+                // return articleCartUI(index);
+                return articleTitleUI(index);
+              },
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   AppBar appBarUI() {
@@ -393,11 +392,8 @@ class LatestPageState extends State<LatestPage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.green,
         onPressed: () async {
-          dynamic isRefresh =
-              await Navigator.of(context).pushNamed("/edit", arguments: 0);
-          if (isRefresh ?? false) {
-            _refreshData();
-          }
+          await Navigator.of(context).pushNamed("/edit", arguments: 0);
+          _refreshData();
         },
         child: const Icon(
           Icons.add,

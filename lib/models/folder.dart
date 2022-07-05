@@ -151,7 +151,13 @@ class FolderProvider {
     var _database = await DBProvider.db();
     List<Map>? maps = await _database.query(
       folderTable,
-      columns: [folderId, folderName, folderSuperID, folderCreatedAt, folderUpdatedAt],
+      columns: [
+        folderId,
+        folderName,
+        folderSuperID,
+        folderCreatedAt,
+        folderUpdatedAt
+      ],
       where: '$folderId=?',
       whereArgs: [id],
       limit: 1,
@@ -159,24 +165,61 @@ class FolderProvider {
     return Folder.fromMap(maps.first);
   }
 
-  Future<List<LevelRoot>> queryRoot(int id,
+  Future<List<LevelRoot>> queryLevelRootWithID(int id,
       {int limit = 10, offset = 0}) async {
     var _database = await DBProvider.db();
     List<LevelRoot> folderLevelRoots = [];
-    List<Map>? folderMaps = await _database.query(folderTable,
-        columns: [folderId, folderName, folderSuperID, folderCreatedAt, folderUpdatedAt],
-        where: '$folderSuperID=?',
-        whereArgs: [id],
-        limit: limit,
-        offset: offset);
-    folderMaps.forEach((element) {
+    List<Map>? folderMaps = await _database.query(
+      folderTable,
+      columns: [
+        folderId,
+        folderName,
+        folderSuperID,
+        folderCreatedAt,
+        folderUpdatedAt
+      ],
+      where: '$folderSuperID=?',
+      whereArgs: [id],
+      limit: limit,
+      offset: offset,
+    );
+    for (var element in folderMaps) {
       element[LevelRoot.levelRootType] = folderType;
       element[LevelRoot.levelRootContent] = "";
       folderLevelRoots.add(LevelRoot.fromMap(element));
-    });
+    }
 
     List<LevelRoot>? articleLevelRoots = await ArticleProvider()
         .queryLevelRootWithSuperFolderID(id, limit: limit, offset: offset);
+    if (articleLevelRoots.isNotEmpty) {
+      folderLevelRoots.addAll(articleLevelRoots);
+    }
+    return folderLevelRoots;
+  }
+
+  Future<List<LevelRoot>> queryLevelRootWithKey(String key) async {
+    var _database = await DBProvider.db();
+    List<LevelRoot> folderLevelRoots = [];
+    List<Map>? folderMaps = await _database.query(
+      folderTable,
+      columns: [
+        folderId,
+        folderName,
+        folderSuperID,
+        folderCreatedAt,
+        folderUpdatedAt
+      ],
+      where: '$folderName like ?',
+      whereArgs: ['%$key%'],
+    );
+    for (var element in folderMaps) {
+      element[LevelRoot.levelRootType] = folderType;
+      element[LevelRoot.levelRootContent] = "";
+      folderLevelRoots.add(LevelRoot.fromMap(element));
+    }
+
+    List<LevelRoot>? articleLevelRoots = await ArticleProvider()
+        .queryLevelRootWithKey(key);
     if (articleLevelRoots.isNotEmpty) {
       folderLevelRoots.addAll(articleLevelRoots);
     }
@@ -187,9 +230,9 @@ class FolderProvider {
     var _database = await DBProvider.db();
     List<Map>? maps = await _database.query(folderTable);
     List<Folder> list = [];
-    maps.forEach((element) {
+    for (var element in maps) {
       list.add(Folder.fromMap(element));
-    });
+    }
     return list;
   }
 

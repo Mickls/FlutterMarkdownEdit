@@ -1,6 +1,6 @@
 import 'package:flutter_md_edit/models/article.dart';
 
-void saveFile(int articleID, String title, String content) async {
+Future<int> saveFile(int articleID, String title, String content) async {
   // if (!title.endsWith('.md')){
   //   title = '$title.md';
   // }
@@ -11,7 +11,7 @@ void saveFile(int articleID, String title, String content) async {
       superFolderID: 0,
       isDraft: 0,
     );
-    await ArticleProvider()
+    return await ArticleProvider()
         .update(article, articleID);
   } else {
     Article article = Article(
@@ -20,7 +20,7 @@ void saveFile(int articleID, String title, String content) async {
       superFolderID: 0,
       isDraft: 0,
     );
-    await ArticleProvider().insert(article);
+    return await ArticleProvider().insert(article);
   }
 }
 

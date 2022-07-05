@@ -168,11 +168,34 @@ class ArticleProvider {
         limit: limit,
         orderBy: '-$articleCreatedAt');
     List<LevelRoot> list = [];
-    maps.forEach((element) {
+    for (var element in maps) {
       var el = Map.from(element);
       el[LevelRoot.levelRootType] = articleType;
       list.add(LevelRoot.fromMap(el));
-    });
+    }
+    return list;
+  }
+
+  Future<List<LevelRoot>> queryLevelRootWithKey(String key) async {
+    final db = await DBProvider.db();
+    List<Map>? maps = await db.query(articleTable,
+        columns: [
+          articleId,
+          articleTitle,
+          articleContent,
+          articleSuperFolderID,
+          articleCreatedAt,
+          articleUpdatedAt,
+        ],
+        where: '$articleTitle like ?',
+        whereArgs: ['%$key%'],
+    );
+    List<LevelRoot> list = [];
+    for (var element in maps) {
+      var el = Map.from(element);
+      el[LevelRoot.levelRootType] = articleType;
+      list.add(LevelRoot.fromMap(el));
+    }
     return list;
   }
 
@@ -180,9 +203,9 @@ class ArticleProvider {
     final db = await DBProvider.db();
     List<Map>? maps = await db.query(articleTable);
     List<Article> list = [];
-    maps.forEach((element) {
+    for (var element in maps) {
       list.add(Article.fromMap(element));
-    });
+    }
     return list;
   }
 
@@ -195,7 +218,7 @@ class ArticleProvider {
     );
   }
 
-  Future update(Article article, int id) async {
+  Future<int> update(Article article, int id) async {
     final db = await DBProvider.db();
     var now = DateTime.now().millisecondsSinceEpoch;
     var updateMap = article.toMap();
