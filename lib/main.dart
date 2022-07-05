@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_md_edit/ui/handle_ui.dart';
-import 'package:flutter_md_edit/ui/home_ui.dart';
-import 'package:flutter_md_edit/ui/edit_ui.dart';
-import 'package:flutter_md_edit/ui/test_ui.dart';
+import 'package:flutter_md_edit/page/home.dart';
+import 'package:flutter_md_edit/page/edit.dart';
+import 'package:flutter_md_edit/components/test_ui.dart';
 import 'package:flutter_md_edit/models/db_utils.dart';
 
 void main() {
@@ -19,7 +18,6 @@ class MyApp extends StatelessWidget {
       // '/search': (context,{arguments}) => SearchPage(arguments:arguments),
       '/search': (context) => new SearchPage(),
       '/form': (context) => FormPage(),
-      '/handle': (context, {arguments}) => HandleUI(articleID: arguments,),
     };
     // DBProvider().init();
 

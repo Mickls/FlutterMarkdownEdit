@@ -84,7 +84,7 @@ class ArticleProvider {
     )
   ''';
 
-  Future insert(Article article) async {
+  Future<int> insert(Article article) async {
     final db = await DBProvider.db();
     var insertMap = article.toMap();
     insertMap.removeWhere((key, value) => value == null);

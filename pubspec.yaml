@@ -43,6 +43,7 @@ dependencies:
   markdown: ^5.0.0
   dio: ^4.0.6
   shared_preferences: ^2.0.15
+  getwidget: ^2.0.4
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +75,9 @@ flutter:
     - family: simplified
       fonts:
         - asset: assets/fonts/youyuan.ttf
+    - family: AntIcons
+      fonts:
+        - asset: assets/fonts/AntIcons.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

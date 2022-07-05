@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_md_edit/logic/file_data.dart';
 import 'package:flutter_md_edit/models/article.dart';
-import 'package:flutter_md_edit/ui/pop_window_ui.dart';
+import 'package:flutter_md_edit/components/pop_window_ui.dart';
 import 'package:flutter_md_edit/utils/markdown_highlight.dart';
 import 'package:flutter_md_edit/utils/overrid_stack.dart';
 
@@ -20,6 +20,10 @@ class EditUI extends StatefulWidget {
 class EditUIState extends State<EditUI> {
   var _top = 0.0;
   var _width = 0.0;
+  var markdownText = "";
+  var titleText = "";
+  var _articleID = 0;
+
   bool _editVisible = true;
   bool _viewVisible = true;
   bool _isRefresh = false;
@@ -29,8 +33,6 @@ class EditUIState extends State<EditUI> {
   final TextEditingController markdownController = TextEditingController();
   final TextEditingController titleController = TextEditingController();
 
-  var markdownText = "";
-  var titleText = "";
 
   Future<String> _loadText() async {
     return markdownText;
@@ -65,14 +67,22 @@ class EditUIState extends State<EditUI> {
     if (editFocusNode.hasFocus || titleFocusNode.hasFocus) {
       print("获取焦点");
     } else {
-      _isRefresh = await autoSaveFile(widget.articleID, titleText, markdownText);
+      var id = widget.articleID;
+      if (_articleID != 0){
+        id = _articleID;
+      }
+      _articleID = await autoSaveFile(id, titleText, markdownText);
     }
   }
 
   _saveData() async {
     if (titleText.isNotEmpty) {
       _isRefresh = true;
-      saveFile(widget.articleID, titleText, markdownText);
+      var id = widget.articleID;
+      if (_articleID != 0) {
+        id = _articleID;
+      }
+      saveFile(id, titleText, markdownText);
       if (mounted) {
         Navigator.of(context).pop(_isRefresh);
       }

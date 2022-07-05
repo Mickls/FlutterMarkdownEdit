@@ -1,12 +1,16 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_md_edit/components/latest_page.dart';
+import 'package:flutter_md_edit/contains/icon.dart';
 import 'package:flutter_md_edit/models/article.dart';
 import 'package:flutter_md_edit/models/folder.dart';
 import 'package:flutter_md_edit/contains/font_style.dart';
+import 'package:getwidget/components/list_tile/gf_list_tile.dart';
+import 'package:getwidget/getwidget.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
-class LatestPageUI extends StatefulWidget {
-  const LatestPageUI({Key? key}) : super(key: key);
+class LatestPage extends StatefulWidget {
+  const LatestPage({Key? key}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -14,10 +18,11 @@ class LatestPageUI extends StatefulWidget {
   }
 }
 
-class LatestPageState extends State<LatestPageUI> {
+class LatestPageState extends State<LatestPage> {
   final ScrollController _scrollController = ScrollController();
 
   List<LevelRoot> _levelRoots = [];
+  List<String> _titles = [];
 
   final RefreshController _refreshController =
       RefreshController(initialRefresh: false);
@@ -34,6 +39,7 @@ class LatestPageState extends State<LatestPageUI> {
           for (var element in levelRoots) {
             if (!_levelRoots.contains(element)) {
               _levelRoots.add(element);
+              _titles.add(element.name ?? "");
             }
           }
           _refreshController.loadComplete();
@@ -60,14 +66,25 @@ class LatestPageState extends State<LatestPageUI> {
     _loadData();
   }
 
-  Widget articleCartUI(int index) {
-    return GestureDetector(
+  Widget articleTitleUI(int index) {
+    var levelRoot = _levelRoots[index];
+    var updateTime = levelRoot.updatedAt;
+    return GFListTile(
+      title: titleUI(levelRoot.name ?? ""),
+      description: Text("${updateTime?.year.toString()}-"
+          "${updateTime?.month.toString()}-"
+          "${updateTime?.day.toString()} "
+          // "${updateTime?.hour.toString()}:"
+          // "${updateTime?.minute.toString()}:"
+          // "${updateTime?.second.toString()}",
+          ),
+      color: Colors.white,
       onTap: () async {
         await Navigator.of(context)
             .pushNamed("/edit", arguments: _levelRoots[index].id ?? 0);
         _refreshData();
       },
-      onLongPress: () {
+      onLongPress: () async {
         showDialog(
           // 传入 context
           context: context,
@@ -88,7 +105,6 @@ class LatestPageState extends State<LatestPageUI> {
           ),
         );
       },
-      child: articleUI(index),
     );
   }
 
@@ -201,12 +217,10 @@ class LatestPageState extends State<LatestPageUI> {
                     child: _renameUI(context, levelRoot.name ?? "")),
               );
               Article? article = Article(
-                // title: levelRoots.name,
                 title: renameTitle,
                 content: levelRoot.content,
               );
               await ArticleProvider().update(article, levelRoot.id ?? 0);
-              // _refreshArticleDataWithIndex(levelRoot.id ?? 0, index);
               _refreshData();
             },
             child: generateDialogButton("重命名", Icons.edit_note_outlined)),
@@ -229,101 +243,104 @@ class LatestPageState extends State<LatestPageUI> {
   }
 
   Widget getContentUI() {
+    var searchList = [];
+    _levelRoots.forEach((element) {
+      searchList.add(element.name);
+    });
     return SmartRefresher(
-      enablePullDown: true,
-      enablePullUp: true,
-      header: const WaterDropHeader(),
-      footer: CustomFooter(
-        builder: (BuildContext context, LoadStatus? mode) {
-          Widget body;
-          if (mode == LoadStatus.idle) {
-            body = const Text("上拉加载");
-          } else if (mode == LoadStatus.loading) {
-            body = const CupertinoActivityIndicator();
-          } else if (mode == LoadStatus.failed) {
-            body = const Text("加载失败！点击重试！");
-          } else if (mode == LoadStatus.canLoading) {
-            body = const Text("松手,加载更多!");
-          } else {
-            body = const Text("没有更多数据了!");
-          }
-          return SizedBox(
-            height: 55.0,
-            child: Center(child: body),
-          );
-        },
-      ),
-      controller: _refreshController,
-      onRefresh: _refreshData,
-      onLoading: _loadData,
-      child: ListView.builder(
-        itemCount: _levelRoots.length,
-        controller: _scrollController,
-        itemBuilder: (context, index) {
-          return articleCartUI(index);
-        },
-      ),
-    );
-  }
-
-  Widget articleUI(int index) {
-    if (index >= _levelRoots.length) {
-      return const Spacer();
-    }
-    LevelRoot levelRoot = _levelRoots[index];
-    return Flex(
-      direction: Axis.horizontal,
-      children: [
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.all(15),
-            padding: const EdgeInsets.all(15),
-            color: Colors.white,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.file_copy,
-                      color: Colors.green,
-                    ),
-                    Text(
-                      levelRoot.name ?? "",
-                      style: getNormalTextStyle(),
-                    ),
-                  ],
-                ),
-                Visibility(
-                  visible:
-                      (levelRoot.content == null || levelRoot.content == "")
-                          ? false
-                          : true,
+        enablePullDown: true,
+        enablePullUp: true,
+        header: const WaterDropHeader(),
+        footer: CustomFooter(
+          builder: (BuildContext context, LoadStatus? mode) {
+            Widget body;
+            if (mode == LoadStatus.idle) {
+              body = const Text("上拉加载");
+            } else if (mode == LoadStatus.loading) {
+              body = const CupertinoActivityIndicator();
+            } else if (mode == LoadStatus.failed) {
+              body = const Text("加载失败！点击重试！");
+            } else if (mode == LoadStatus.canLoading) {
+              body = const Text("松手,加载更多!");
+            } else {
+              body = const Text("没有更多数据了!");
+            }
+            return SizedBox(
+              height: 55.0,
+              child: Center(child: body),
+            );
+          },
+        ),
+        controller: _refreshController,
+        onRefresh: _refreshData,
+        onLoading: _loadData,
+        child: Column(
+          children: [
+            GFSearchBar(
+              overlaySearchListHeight: 100.0,
+              searchList: searchList,
+              overlaySearchListItemBuilder: (dynamic item) {
+                return Container(
+                  padding: const EdgeInsets.all(8),
                   child: Text(
-                    levelRoot.content?.split('\n').first ?? "",
-                    style: getNormalTextStyle(),
+                    item,
+                    style: TextStyle(
+                      fontSize: 14,
+                    ),
+                  ),
+                );
+              },
+              searchQueryBuilder: (query, List<dynamic> searchList) {
+                // TODO: 搜索同时修改主页展示的文件列表<setState>
+                return searchList
+                    .where((element) =>
+                        element.toLowerCase().contains(query.toLowerCase()))
+                    .toList();
+              },
+              onItemSelected: (item) {
+                // TODO: 点击选项直接展示选项命中的文件列表
+                print(item);
+              },
+              noItemsFoundWidget: Container(),
+              searchBoxInputDecoration: InputDecoration(
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Color(0x4437474F),
+                  ),
+                  borderRadius: BorderRadius.circular(60),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Theme.of(context).primaryColor,
                   ),
                 ),
-                Text(
-                  "${levelRoot.updatedAt?.year.toString()}-"
-                  "${levelRoot.updatedAt?.month.toString()}-"
-                  "${levelRoot.updatedAt?.day.toString()} "
-                  "${levelRoot.updatedAt?.hour.toString()}:"
-                  "${levelRoot.updatedAt?.minute.toString()}:"
-                  "${levelRoot.updatedAt?.second.toString()}",
-                  style: getNormalTextStyle(),
+                suffixIcon: const Icon(Icons.search),
+                border: InputBorder.none,
+                hintText: '搜索',
+                contentPadding: const EdgeInsets.only(
+                  left: 16,
+                  right: 20,
+                  top: 14,
+                  bottom: 14,
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
-    );
+            Expanded(
+              child: ListView.builder(
+                itemCount: _levelRoots.length,
+                controller: _scrollController,
+                // shrinkWrap: true,
+                itemBuilder: (context, index) {
+                  // return articleCartUI(index);
+                  return articleTitleUI(index);
+                },
+              ),
+            )
+          ],
+        ));
   }
 
-  AppBar titleUI() {
+  AppBar appBarUI() {
     return AppBar(
       title: const Text(
         "最新",
@@ -336,23 +353,39 @@ class LatestPageState extends State<LatestPageUI> {
       ),
       centerTitle: true,
       actions: [
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(
-            Icons.menu,
-            color: Color.fromARGB(255, 180, 180, 180),
-          ),
-        ),
+        PopupMenuButton(
+            elevation: 1,
+            offset: Offset(0, 56),
+            icon: const Icon(
+              AntIcons.menu,
+              color: Color.fromARGB(255, 180, 180, 180),
+            ),
+            shape: RoundedRectangleBorder(
+              // side: BorderSide(
+              //     color: Colors.red
+              // ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            itemBuilder: (BuildContext context) {
+              return <PopupMenuEntry<String>>[
+                PopupMenuItem(child: Text("同步")),
+                PopupMenuDivider(),
+                CheckedPopupMenuItem(
+                  checked: true,
+                  child: Text("显示草稿"),
+                ),
+              ];
+            }),
       ],
       elevation: 0,
-      backgroundColor: Colors.white,
+      backgroundColor: Color.fromARGB(255, 245, 245, 245),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: titleUI(),
+      appBar: appBarUI(),
       body: Container(
         color: const Color.fromARGB(255, 245, 245, 245),
         child: getContentUI(),
@@ -368,6 +401,8 @@ class LatestPageState extends State<LatestPageUI> {
         },
         child: const Icon(
           Icons.add,
+          color: Colors.white,
+          size: 32,
         ),
       ),
     );
