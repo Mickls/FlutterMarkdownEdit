@@ -165,7 +165,37 @@ class FolderProvider {
     return Folder.fromMap(maps.first);
   }
 
-  Future<List<LevelRoot>> queryLevelRootWithID(int id,
+  Future<List<LevelRoot>> queryLevelRoot({int limit = 10, offset = 0}) async {
+    var _database = await DBProvider.db();
+    List<LevelRoot> folderLevelRoots = [];
+    List<Map>? folderMaps = await _database.query(
+      folderTable,
+      columns: [
+        folderId,
+        folderName,
+        folderSuperID,
+        folderCreatedAt,
+        folderUpdatedAt
+      ],
+      limit: limit,
+      offset: offset,
+      orderBy: '-$folderUpdatedAt'
+    );
+    for (var element in folderMaps) {
+      element[LevelRoot.levelRootType] = folderType;
+      element[LevelRoot.levelRootContent] = "";
+      folderLevelRoots.add(LevelRoot.fromMap(element));
+    }
+
+    List<LevelRoot>? articleLevelRoots = await ArticleProvider()
+        .queryLevelRoot(limit: limit, offset: offset);
+    if (articleLevelRoots.isNotEmpty) {
+      folderLevelRoots.addAll(articleLevelRoots);
+    }
+    return folderLevelRoots;
+  }
+
+  Future<List<LevelRoot>> queryLevelRootWithSuperID(int id,
       {int limit = 10, offset = 0}) async {
     var _database = await DBProvider.db();
     List<LevelRoot> folderLevelRoots = [];

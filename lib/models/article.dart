@@ -129,6 +129,31 @@ class ArticleProvider {
     return Article.fromMap(maps.first);
   }
 
+  Future<List<LevelRoot>> queryLevelRoot({int offset = 0, limit = 10}) async {
+    final db = await DBProvider.db();
+    List<Map>? maps = await db.query(
+      articleTable,
+      columns: [
+        articleId,
+        articleTitle,
+        articleContent,
+        articleSuperFolderID,
+        articleCreatedAt,
+        articleUpdatedAt,
+      ],
+      offset: offset,
+      limit: limit,
+      orderBy: '-$articleUpdatedAt',
+    );
+    List<LevelRoot> list = [];
+    for (var element in maps) {
+      var el = Map.from(element);
+      el[LevelRoot.levelRootType] = articleType;
+      list.add(LevelRoot.fromMap(el));
+    }
+    return list;
+  }
+
   Future<LevelRoot> queryLevelRootWithArticleID(int id) async {
     final db = await DBProvider.db();
     List<Map>? maps = await db.query(
@@ -166,7 +191,8 @@ class ArticleProvider {
         whereArgs: [id],
         offset: offset,
         limit: limit,
-        orderBy: '-$articleCreatedAt');
+        // orderBy: '-$articleUpdatedAt',
+    );
     List<LevelRoot> list = [];
     for (var element in maps) {
       var el = Map.from(element);
